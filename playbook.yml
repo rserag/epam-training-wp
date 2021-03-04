@@ -32,6 +32,12 @@
       state: present
      become: yes
 
+   - name: 'install mysql'
+     apt:
+      name:
+       - mysql-server
+       - python3-mysqldb
+
    - name: 'config php fpm'
      replace: 'dest=/etc/php/7.4/fpm/php.ini regexp="(;cgi.fix_pathinfo=1)" replace="cgi.fix_pathinfo=0"'
      become: yes
@@ -51,4 +57,50 @@
      service: 'name=nginx state=restarted'
      become: yes
 
+   - name: 'start mysql'
+     action: 'service name=mysql state=started'
 
+   - name: 'set root password'
+     mysql_user:
+      name: root
+      host:
+       - '{{ ansible_hostname }}'
+       - 127.0.0.1
+       - ::1
+       - localhost
+      password: '{{ mysql_root_password }}'
+      priv: '*.*:ALL,GRANT'
+     become: yes
+
+   - name: 'set mysql config'
+     template: 'src=../templates/.my.cnf dest=/root/.my.cnf owner=root mode=0600'
+     become: yes
+
+   - name: 'create mysql user'
+     mysql_user:
+      name: '{{ wp_user }}'
+      password: '{{ wp_pass }}'
+      priv: '*.*:ALL'
+     become: yes
+
+   - name: 'create mysql db'
+     mysql_db:
+      name: '{{ wp_db_name }}'
+      state: present
+     become: yes
+
+   - name: 'delete anon mysql users for host'
+     action: 'mysql_user user="" host="{{ server_name }}" state="absent"'
+     become: yes
+
+   - name: 'delete anon mysql users for localhost'
+     action: 'mysql_user user="" state="absent"'
+     become: yes
+
+   - name: 'delete test db in mysql'
+     action: 'mysql_db db=test state=absent'
+     become: yes
+
+   - name: 'update mysql root for all root accs'
+     mysql_user: 'name=root host={{ server_name }} password={{ mysql_root_password }} priv=*.*:ALL,GRANT'
+     become: yes
