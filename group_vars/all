@@ -1,4 +1,4 @@
-server_name: 192.168.10.9
+server_name: 192.168.10.17
 
 wp_db_name: wordpress4
 wp_user: wordpress
