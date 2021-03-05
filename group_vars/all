@@ -13,3 +13,5 @@ wp_version: 5.6.2
 auto_up_disable: true
 core_update_level: true
 # set false for prod
+
+ansible_sudo_pass: mekergu3
