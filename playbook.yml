@@ -136,18 +136,14 @@
      when: not check_path.stat.exists
 
    - name: 'get random salts'
-     get_url:
+     uri:
       url: 'https://api.wordpress.org/secret-key/1.1/salt/'
-      dest: /tmp/wp_random_salts
-      force: yes
+      return_content: yes
+      method: GET
      register: 'wp_salt'
 
-   - name: 'create wp-config'
-     template: 'src=wp-config.php dest=/srv/www/{{ server_name }}'
-     become: yes
-
    - name: 'create wp config'
-     template: 'src=../templates/wp-config.php dest=/var/www/{{ server_name }}/wp-config.php owner=root'
+     template: 'src=../templates/wp-config.php dest=/var/www/{{ server_name }}/wp-config.php'
      become: yes
 
    - name: 'update wp config'
@@ -157,6 +153,6 @@
       line: '{{ item.line }}'
      loop:
       - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{ wp_db_name }}');"}
-      - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{ wp_db_user }}');"}
-      - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{ wp_db_password }}');"}
+      - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{ wp_user }}');"}
+      - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{ wp_pass }}');"}
      become: yes
