@@ -63,11 +63,6 @@
    - name: 'set root password'
      mysql_user:
       name: root
-      host:
-       - '{{ ansible_hostname }}'
-       - 127.0.0.1
-       - ::1
-       - localhost
       password: '{{ mysql_root_password }}'
       priv: '*.*:ALL,GRANT'
      become: yes
@@ -103,4 +98,65 @@
 
    - name: 'update mysql root for all root accs'
      mysql_user: 'name=root host={{ server_name }} password={{ mysql_root_password }} priv=*.*:ALL,GRANT'
+     become: yes
+
+   - name: 'create webroot'
+     file:
+      state: directory
+      path: /var/www
+      owner: root
+      group: root
+      mode: 0755
+     become: yes
+
+   - name: 'check wp directory'
+     stat: path=/var/www/{{ server_name }}
+     register: check_path
+
+   - name: 'get wp'
+     get_url:
+      url: https://wordpress.org/wordpress-{{ wp_version }}.tar.gz 
+      dest: /tmp/wordpress-{{ wp_version }}.tar.gz
+     become: yes
+     when: not check_path.stat.exists
+
+   - name: 'extract wp'
+     unarchive: 
+      src: /tmp/wordpress-{{ wp_version }}.tar.gz
+      dest: /tmp
+      owner: www-data
+      group: www-data
+      copy: no
+     become: yes
+     when: not check_path.stat.exists
+
+   - name: 'move wp'
+     command: 'mv /tmp/wordpress /var/www/{{ server_name }}'
+     become: yes
+     when: not check_path.stat.exists
+
+   - name: 'get random salts'
+     get_url:
+      url: 'https://api.wordpress.org/secret-key/1.1/salt/'
+      dest: /tmp/wp_random_salts
+      force: yes
+     register: 'wp_salt'
+
+   - name: 'create wp-config'
+     template: 'src=wp-config.php dest=/srv/www/{{ server_name }}'
+     become: yes
+
+   - name: 'create wp config'
+     template: 'src=../templates/wp-config.php dest=/var/www/{{ server_name }}/wp-config.php owner=root'
+     become: yes
+
+   - name: 'update wp config'
+     lineinfile:
+      dest: '/var/www/{{ server_name }}/wp-config.php'
+      regexp: '{{ item.regexp }}'
+      line: '{{ item.line }}'
+     loop:
+      - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{ wp_db_name }}');"}
+      - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{ wp_db_user }}');"}
+      - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{ wp_db_password }}');"}
      become: yes
