@@ -1,0 +1,28 @@
+- name: 'add php repo'
+  apt_repository:
+    repo: 'ppa:ondrej/php'
+  become: yes
+
+- name: 'install php with extensions'
+  apt:
+    name:
+      - php7.4
+      - php7.4-fpm
+      - php7.4-mysql
+      - php7.4-gd
+      - php-ssh2
+      - php7.4-mcrypt
+    state: present
+  become: yes
+
+- name: 'config php fpm'
+  replace: 'dest=/etc/php/7.4/fpm/php.ini regexp="(;cgi.fix_pathinfo=1)" replace="cgi.fix_pathinfo=0"'
+  notify:
+    - restart nginx
+  become: yes
+
+- name: 'config nginx for php'
+  template: src=../templates/nginx-wp-common.conf dest=/etc/nginx/nginx-wp-common.conf owner=www-data group=www-data mode=0644
+  notify:
+    - restart nginx
+  become: yes
